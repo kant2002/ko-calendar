@@ -176,6 +176,12 @@ All options are deeply extended, allowing you to only specify the options you wi
 			<td>...</td>
 			<td>An object that specifies all strings used for the calendar, useful for localization. Any of the keys within this object may be included.</td>
 		</tr>
+		<tr>
+			<td>firstDay</td>
+			<td>Number</td>
+			<td>0</td>
+			<td>A Number, from 0 to 6, representing the day of the week.</td>
+		</tr>
 	</tbody>
 </table>
 
