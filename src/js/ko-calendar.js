@@ -291,13 +291,13 @@
                 var normalized = self.utils.date.normalize(self.current());
                 normalized.setDate(1);
                 var firstDayOfMonth = normalized.getDay();
-                var fristDateOfSheet = normalized.getDate() - firstDayOfMonth + self.opts.firstDay;
+                var firstDateOfSheet = normalized.getDate() - firstDayOfMonth + self.opts.firstDay;
                 
                 if (firstDayOfMonth < self.opts.firstDay) {
-                    fristDateOfSheet -= 7;
+                    firstDateOfSheet -= 7;
                 }
 
-                normalized.setDate(fristDateOfSheet); // Set our date to the first day of the week from the normalized month
+                normalized.setDate(firstDateOfSheet); // Set our date to the first day of the week from the normalized month
 
                 var weeks = [];
                 var week = 0;
