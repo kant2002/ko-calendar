@@ -90,7 +90,10 @@ var opts = {
 		months: [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ],
 		days: [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ],
 		time: ["AM", "PM"]
-	}
+	},
+	
+	firstDay: 0
+	
 };
 ```
 All options are deeply extended, allowing you to only specify the options you wish to override.
