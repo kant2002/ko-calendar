@@ -50,6 +50,8 @@
 
             autoclose: true,
 
+            firstDay: 0,
+
             strings: {
                 months: [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ],
                 days: [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ],
@@ -67,6 +69,12 @@
             daysInWeek: 7,
             dayStringLength: 2
         };
+
+        self.dayLabels = self.opts.strings.days;
+
+        if (self.opts.firstDay > 0 && self.opts.firstDay <= 6) {
+            self.dayLabels = self.dayLabels.splice(self.opts.firstDay).concat(self.dayLabels);
+        }
 
         // Model utils
         self.utils = {
@@ -282,7 +290,14 @@
                 // Current month set to the first day
                 var normalized = self.utils.date.normalize(self.current());
                 normalized.setDate(1);
-                normalized.setDate(normalized.getDate() - normalized.getDay()); // Set our date to the first day of the week from the normalized month
+                var firstDayOfMonth = normalized.getDay();
+                var fristDateOfSheet = normalized.getDate() - firstDayOfMonth + self.opts.firstDay;
+                
+                if (firstDayOfMonth < self.opts.firstDay) {
+                    fristDateOfSheet -= 7;
+                }
+
+                normalized.setDate(fristDateOfSheet); // Set our date to the first day of the week from the normalized month
 
                 var weeks = [];
                 var week = 0;
@@ -421,7 +436,7 @@
                             <a href="#" data-bind="click: calendar.next" class="next">&raquo;</a>\
                         </th>\
                     </tr>\
-                    <tr data-bind="foreach: opts.strings.days">\
+                    <tr data-bind="foreach: dayLabels">\
                         <th data-bind="text: $data.substring(0, $parents[1].constants.dayStringLength)"></th>\
                     </tr>\
                 </thead>\
