@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html>
 	<head>
 		<meta charset="utf-8">
@@ -76,7 +76,7 @@
 
 			<div class="col">
 			<label for="date-input">Start date:</label>
-			<input id="date-input" type="text" name="stream-start-time" class="form-control"  data-bind="calendar: startCalendarOpts, value: selStartDateAndTime " size="20"/>
+			<input id="date-input" type="text" name="stream-start-time" class="form-control"  data-bind="calendar: startCalendarOpts" size="20"/>
 			</div>
 
 			<div class="col">
@@ -92,7 +92,9 @@
 		<a href="https://github.com/MakerStudios/ko-calendar"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/52760788cde945287fbb584134c4cbc2bc36f904/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f77686974655f6666666666662e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_white_ffffff.png"></a>
 
 		<script type="text/javascript" src="../bower_components/knockout/index.js"></script>
-		<script type="text/javascript" src="../dist/ko-calendar.min.js"></script>
+        <script type="text/javascript" src="../bower_components/moment/min/moment-with-locales.js"></script>
+		<!-- <script type="text/javascript" src="../dist/ko-calendar.min.js"></script> -->
+        <script type="text/javascript" src="../src/js/ko-calendar.js"></script>
 		<script type="text/javascript">
 
 			(function() {
@@ -104,34 +106,32 @@
 						value: ko.observable(),
 						showCalendar: true,
 						showToday: true,
-						showTime: true,
-						showNow: true,
-						militaryTime: false
+						showNow: true
 					};
 
-					var defaultDate = new Date();		
-					self.startDate = ko.observable(defaultDate.getTime());
-					self.endDate = ko.observable(defaultDate.getTime());
+					var defaultDate = moment();		
+					//self.startDate = ko.observable(defaultDate.valueOf());
+     //               self.endDate = ko.observable(defaultDate.valueOf());
 
-					self.toDateString = function(date) {
-						if (!date) {
-							return '';
-						}
-						return date.toString();
-					};
+					//self.toDateString = function(date) {
+					//	if (!date) {
+					//		return '';
+					//	}
+					//	return date.format();
+					//};
 
-					self.selStartDateAndTime = ko.observable(self.toDateString(defaultDate));
-					self.startCalendarOpts = {value: ko.observable(), autoclose: false};
+					//self.selStartDateAndTime = ko.observable(self.toDateString(defaultDate));
+                    self.startCalendarOpts = { value: ko.observable(defaultDate), autoclose: false};
 
-					self.startCalendarOpts.value.subscribe(function(newDate) {
-						if (newDate === null || !(newDate instanceof Date)) {
-							self.startCalendarOpts.value(new Date(self.startDate()));
-							return;
-						}
-						var viewDate = self.toDateString(newDate);
-						self.selStartDateAndTime(viewDate);
-						self.startDate(newDate.getTime());
-					});
+					//self.startCalendarOpts.value.subscribe(function(newDate) {
+     //                   if (newDate === null || !moment.isMoment(newDate)) {
+					//		self.startCalendarOpts.value(moment(self.startDate()));
+					//		return;
+					//	}
+					//	var viewDate = self.toDateString(newDate);
+     //                   self.selStartDateAndTime(viewDate);
+     //                   self.startDate(newDate.valueOf());
+					//});
 
 				};
 				var instance = window.instance = new Demo();

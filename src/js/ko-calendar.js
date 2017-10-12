@@ -1,21 +1,21 @@
-(function(root, factory) {
+(function (root, factory) {
 
     // AMD / require.js
     if (typeof define === 'function' && define.amd) {
-        define(['knockout'], function(ko) {
-            factory.call(root, window, document, ko);
+        define(['knockout', 'moment'], function (ko, moment) {
+            factory.call(root, window, document, ko, moment);
         });
     } else {
-        factory.call(root, window, document, ko);
+        factory.call(root, window, document, ko, moment);
     }
 
-})(this, function(win, doc, ko) {
+})(this, function (win, doc, ko, moment) {
 
     var binding = 'calendar';
 
     // Core utils
     var utils = {
-        deepExtend: function(destination, source) {
+        deepExtend: function (destination, source) {
             var property;
             for (property in source) {
                 if (source[property] && source[property].constructor && source[property].constructor === Object) {
@@ -26,38 +26,67 @@
                 }
             }
             return destination;
+        },
+        isBoolean: function (obj) {
+            return typeof (obj) === 'boolean';
         }
     };
 
-    var Model = function(params) {
+    var Model = function (params) {
         var self = this;
+
+        var _locale = params && params.locale ? params.locale : moment.locale();
+        moment.locale(_locale);
+
+        var _mLocalDate = moment.localeData();
+        var _mLts = _mLocalDate._longDateFormat.LTS;
+
+        var _militaryTime = params && utils.isBoolean(params.militaryTime) ? params.militaryTime : _mLts.charAt(_mLts.length - 1) !== 'A';
+        var _months = _mLocalDate.months();
+        var _days = _mLocalDate.weekdays();
+        var _firstDay = _mLocalDate.firstDayOfWeek();
+
+        var _showTime = params && utils.isBoolean(params.showTime) ? params.showTime : true;
+
+        var _format;
+        if (params && params.format) {
+            _format = params.format;
+        } else if (_showTime) {
+            _format = 'L LTS';
+        } else {
+            _format = 'L'
+        }
 
         self.opts = {
             value: ko.observable(),
-            current: new Date(),
+            current: moment(),
 
             deselectable: true,
 
             showCalendar: true,
             showToday: true,
 
-            showTime: true,
+            showTime: _showTime,
             showNow: true,
-            militaryTime: false,
+            militaryTime: _militaryTime,
 
             min: null,
             max: null,
 
             autoclose: true,
 
-            firstDay: 0,
+            firstDay: _firstDay,
 
+            locale: _locale,
+            format: _format,
             strings: {
-                months: [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ],
-                days: [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ],
-                time: ["AM", "PM"]
+                months: _months, //set depends on locale
+                days: _days, //set depends on locale
+                time: ['AM', 'PM']
             }
         };
+
+
 
         utils.deepExtend(self.opts, params);
 
@@ -88,63 +117,60 @@
                  * @return {Boolean}            True if the date is valid, false otherwise
                  */
                 isValid: function(dateString) {
-                    var date = new Date(dateString);
-                    if ( Object.prototype.toString.call(date) !== "[object Date]" ) {
-                        return false;
-                    }
-                    return !isNaN(date.getTime());
+                    var date = moment(dateString);
+                    return date.isValid();
                 },
 
                 /**
                  * Takes a given date and sets the time to midnight
-                 * @param  {Date} d The date object to normalize
-                 * @return {Date}   The normalized date
+                 * @param  {moment} d The moment object to normalize
+                 * @return {moment}   The normalized moment object
                  */
                 normalize: function(d) {
-                    var normalized = new Date(d.getTime());
-                    normalized.setHours(0, 0, 0, 0);
+                    var normalized = d.clone();
+                    normalized.hours(0).minutes(0).seconds(0).milliseconds(0);
                     return normalized;
                 },
 
                 /**
-                 * Checks if two date objects are on the same day
-                 * @param  {Date}  d1 The first date
-                 * @param  {Date}  d2 The second date
+                 * Checks if two moment objects are on the same day
+                 * @param  {moment}  d1 The first date
+                 * @param  {moment}  d2 The second date
                  * @return {Boolean}    Whether or not the dates share the same day
                  */
                 isSame: function(d1, d2) {
                     if(!d1 || !d2) { return false; }
                     return (
-                        (d1.getMonth() == d2.getMonth()) &&
-                        (d1.getDate() == d2.getDate()) &&
-                        (d1.getFullYear() == d2.getFullYear())
+                        d1.isSame(d2, 'day') &&
+                        d1.isSame(d2, 'month') &&
+                        d1.isSame(d2, 'year')
                     );
                 },
 
                 /**
-                 * Checks if the two date objects have different months
-                 * @param  {Date}  d1 The first date
-                 * @param  {Date}  d2 The second date
+                 * Checks if the two moment objects have different months
+                 * @param  {moment}  d1 The first date
+                 * @param  {moment}  d2 The second date
                  * @return {Boolean}    Whether or not the dates share the same month
                  */
                 isSameMonth: function(d1, d2) {
                     if(!d1 || !d2) { return false; }
-                    return d1.getMonth() == d2.getMonth();
+                    return d1.isSame(d2, 'month');
                 },
 
                 /**
                  * Checks if the given date falls on the weekend (Saturday or Sunday)
-                 * @param  {Date}  d The date to check
+                 * @param  {moment}  d The date to check
                  * @return {Boolean}   Whether or not the date falls on a weekend
                  */
                 isWeekend: function(d) {
                     if(!d) { return false; }
-                    return d.getDay() === 0 || (d.getDay() == self.constants.daysInWeek - 1);
+                    return d.day() === 0 || (d.day() == self.constants.daysInWeek - 1);
                 },
 
                 /**
                  * Check if the given date falls within the date range
-                 * @param {Date} d The date to check
+                 * @param {moment} d The date to check
                  * @return {Boolean} Whether or not the date falls within the range
                  */
                 isWithinMinMaxDateRange: function(d) {
@@ -163,23 +189,22 @@
             },
             time: {
                 handleSuffixCheck: function(date) {
-                    var hours = date.getHours();
+                    var hours = date.hours();
                     if(hours >= 12) {
                         hours -= 12;
                     }
                     else if(hours < 12) {
                         hours += 12;
                     }
-                    return date.setHours(hours);
+                    return date.hours(hours);
                 },
                 checkMinTimeRange: function(data) {
                     if(!data || !self.value() || (!self.opts.min && !self.opts.max)) { return false; }
 
-                    var d = new Date(self.value());
+                    var d = self.value().clone();
 
-                    if(data.type === "hours") { d.setHours(d.getHours() - 1); }
-                    else if(data.type === "minutes") { d.setMinutes(d.getMinutes() - 1); }
-                    else if(data.type === "suffix") { d = self.utils.time.handleSuffixCheck(d); }
+                    if (data.type === 'suffix') { d = self.utils.time.handleSuffixCheck(d); }
+                    else if(data.type === 'hours' || data.type === 'minutes') { d.subtract(1, data.type); }
 
                     if(self.opts.max && self.opts.max < d) { return true; }
                     if(self.opts.min && self.opts.min > d) { return true; }
@@ -189,11 +214,10 @@
                 checkMaxTimeRange: function(data) {
                     if(!data || !self.value() || (!self.opts.min && !self.opts.max)) { return false; }
 
-                    var d = new Date(self.value());
+                    var d = self.value().clone();
 
-                    if(data.type === "hours") { d.setHours(d.getHours() + 1); }
-                    else if(data.type === "minutes") { d.setMinutes(d.getMinutes() + 1); }
-                    else if(data.type === "suffix") { d = new Date(self.utils.time.handleSuffixCheck(d)); }
+                    if (data.type === 'suffix') { d = self.utils.time.handleSuffixCheck(d); }
+                    else if (data.type === 'hours' || data.type === 'minutes') { d.add(1, data.type); }
 
                     if(self.opts.min && self.opts.min > d) { return true; }
                     if(self.opts.max && self.opts.max < d) { return true; }
@@ -203,7 +227,7 @@
             },
             strings: {
                 pad: function(n) {
-                    return n < 10 ? "0" + n : n;
+                    return n < 10 ? '0' + n : n;
                 }
             },
             element: {
@@ -232,23 +256,44 @@
             }
         };
 
+        var _now = moment();
+
         // Date Alias Helpers
-        self.current = ko.observable(self.opts.current || new Date()); // The current sheet Date
+        self.current = ko.observable(self.opts.current || _now); // The current sheet Date
 
         if( !ko.isObservable(self.opts.value) ) {
             return console.error('value must be an observable');
         }
 
         self.value = self.opts.value; // The selected Date
-
+        self.value().locale(self.opts.locale);
+        
         // Hide today button if the min is greater than today or max is less than today
-        if(self.opts.showToday && !self.utils.date.isWithinMinMaxDateRange(self.utils.date.normalize(new Date()))) {
+        if (self.opts.showToday && !self.utils.date.isWithinMinMaxDateRange(self.utils.date.normalize(_now))) {
             self.opts.showToday = false;
         }
         // Hide now button if the current time is out of the min-max time range
-        if(self.opts.showNow && ((self.opts.min && self.opts.min >= new Date()) || (self.opts.max && self.opts.max <= new Date()))) {
+        if (self.opts.showNow && ((self.opts.min && self.opts.min >= _now) || (self.opts.max && self.opts.max <= _now))) {
             self.opts.showNow = false;
         }
+
+
+        self.label = ko.computed({
+            read: function() {
+                var date = self.value();
+                if (!(date === null || date === undefined) && moment.isMoment(date)) {
+                    return date.format(self.opts.format);
+                }
+                return null;
+            },
+            write: function(newDate) {
+                if (self.utils.date.isValid(newDate)) {
+                    self.value(moment(newDate, self.opts.format));
+                } else {
+                    self.value(null);
+                }
+            }
+        });
 
         self.calendar = {
 
@@ -258,10 +303,10 @@
                     return self.value(null);
                 }
                 if(self.opts.min && self.utils.date.isSame(data, self.opts.min)) {
-                    self.value(new Date(self.opts.min));
+                    self.value(self.opts.min.clone());
                 }
                 else {
-                    self.value(new Date(data));
+                    self.value(data.clone());
                 }
 
                 if( self.input() && self.opts.autoclose ) {
@@ -269,35 +314,36 @@
                 }
             },
             selectToday: function(data, e) {
-                var d = self.utils.date.normalize(new Date());
-                self.calendar.select(d);
-                self.current(d);
+                var d = self.utils.date.normalize(moment());
+                if (!self.utils.date.isSame(self.value(), d)) {
+                    self.calendar.select(d);
+                    self.current(d);
+                    self.value(d);
+                }
             },
             next: function() {
                 var cur = self.current();
-                cur.setDate(1);
-                cur.setMonth(cur.getMonth()+1);
-                self.current(new Date(cur));
+                cur.date(1).add(1, 'month');
+                self.current(cur.clone());
             },
             prev: function() {
                 var cur = self.current();
-                cur.setDate(1);
-                cur.setMonth(cur.getMonth()-1);
-                self.current(new Date(cur));
+                cur.date(1).subtract(1, 'month');
+                self.current(cur.clone());
             },
             sheet: ko.computed(function() {
 
                 // Current month set to the first day
                 var normalized = self.utils.date.normalize(self.current());
-                normalized.setDate(1);
-                var firstDayOfMonth = normalized.getDay();
-                var firstDateOfSheet = normalized.getDate() - firstDayOfMonth + self.opts.firstDay;
+                normalized.date(1);
+                var firstDayOfMonth = normalized.day();
+                var firstDateOfSheet = normalized.date() - firstDayOfMonth + self.opts.firstDay;
                 
                 if (firstDayOfMonth < self.opts.firstDay) {
                     firstDateOfSheet -= 7;
                 }
 
-                normalized.setDate(firstDateOfSheet); // Set our date to the first day of the week from the normalized month
+                normalized.date(firstDateOfSheet); // Set our date to the first day of the week from the normalized month
 
                 var weeks = [];
                 var week = 0;
@@ -312,17 +358,17 @@
                     if(weeks[week].length !== self.constants.daysInWeek) {
 
                         // Append to the week
-                        weeks[week].push(new Date(normalized.getTime()));
+                        weeks[week].push(moment(normalized.valueOf()));
 
                         // And increment the date
-                        normalized.setDate( normalized.getDate() + 1 );
+                        normalized.add(1, 'day');
                     }
 
                     // If we've began working within the current month
-                    if( normalized.getMonth() == self.current().getMonth() ) { startedMonth = true; }
+                    if (normalized.isSame(self.current(), 'month')) { startedMonth = true; }
 
                     // If we've started our current month and we've changed months (and thus completed it)
-                    if( startedMonth && (normalized.getMonth() !== self.current().getMonth()) ) { completedMonth = true; }
+                    if (startedMonth && !(normalized.isSame(self.current(), 'month')) ) { completedMonth = true; }
 
                     // If we've completed our month and we are at the end of the week
                     if(completedMonth && weeks[week].length == self.constants.daysInWeek) { completedWeek = true; }
@@ -342,15 +388,15 @@
             next: function(data, e) {
                 if(!self.value()) { return self.time.selectNow(); }
 
-                self.value( new Date( data.set( data.get()+1 ) ) );
+                self.value(data.set( data.get()+1 ).clone());
             },
             prev: function(data, e) {
                 if(!self.value()) { return self.time.selectNow(); }
 
-                self.value( new Date( data.set( data.get()-1 ) ) );
+                self.value(data.set(data.get() + 1).clone());
             },
             selectNow: function() {
-                var now = new Date();
+                var now = moment();
 
                 self.value(now);
                 self.current(now);
@@ -362,13 +408,13 @@
             sheet: ko.observableArray([
                 {
                     type: 'hours',
-                    get: function() { return self.value().getHours(); },
-                    set: function(to) { return self.value().setHours(to); }
+                    get: function() { return self.value().hour(); },
+                    set: function (to) { return self.value().hour(to); }
                 },
                 {
                     type: 'minutes',
-                    get: function() { return self.value().getMinutes(); },
-                    set: function(to) { return self.value().setMinutes(to); }
+                    get: function() { return self.value().minute(); },
+                    set: function (to) { return self.value().minute(to); }
                 }
             ]),
             text: function(data) {
@@ -396,7 +442,7 @@
             self.time.sheet.push({
                 type: 'suffix',
                 get: function() {
-                    if(self.value() && self.value().getHours() < 12 ) {
+                    if(self.value() && self.value().hour() < 12 ) {
                         return 0;
                     }
                     return 1;
@@ -404,20 +450,22 @@
 
                 // This set function is special because we don't care about the `to` parameter
                 set: function(to) {
-                    var hours = self.value().getHours();
+                    var hours = self.value().hour();
                     if(hours >= 12) {
                         hours -= 12;
                     }
                     else if(hours < 12) {
                         hours += 12;
                     }
-                    return self.value().setHours( hours );
+                    return self.value().hour( hours );
                 }
             });
         }
 
         self.input = ko.observable(false); // Is binding attached to an imput?
         self.visible = ko.observable(true);
+
+        return self;
     };
 
     var Template =
@@ -430,7 +478,7 @@
                             <a href="#" data-bind="click: calendar.prev" class="prev">&laquo;</a>\
                         </th>\
                         <th data-bind="attr: { colspan: constants.daysInWeek - 2 } ">\
-                            <b data-bind="text: opts.strings.months[current().getMonth()] + \' \' + current().getFullYear()"></b>\
+                            <b data-bind="text: opts.strings.months[current().month()] + \' \' + current().year()"></b>\
                         </th>\
                         <th>\
                             <a href="#" data-bind="click: calendar.next" class="next">&raquo;</a>\
@@ -442,8 +490,8 @@
                 </thead>\
                 <tbody data-bind="foreach: calendar.sheet">\
                     <tr class="week" data-bind="foreach: $data">\
-                        <td class="day" data-bind="css: { weekend: $parents[1].utils.date.isWeekend($data), today: $parents[1].utils.date.isSame(new Date(), $data), inactive: !($parents[1].utils.date.isSameMonth($parents[1].current(), $data)), outofrange: !($parents[1].utils.date.isWithinMinMaxDateRange($data)) } ">\
-                            <a href="javascript:;" data-bind="text: $data.getDate(), attr: { title: $data }, click: $parents[1].calendar.select, css: { active: $parents[1].utils.date.isSame($parents[1].value(), $data) } "></a>\
+                        <td class="day" data-bind="css: { weekend: $parents[1].utils.date.isWeekend($data), today: $parents[1].utils.date.isSame(moment(), $data), inactive: !($parents[1].utils.date.isSameMonth($parents[1].current(), $data)), outofrange: !($parents[1].utils.date.isWithinMinMaxDateRange($data)) } ">\
+                            <a href="javascript:;" data-bind="text: $data.date(), attr: { title: $data }, click: $parents[1].calendar.select, css: { active: $parents[1].utils.date.isSame($parents[1].value(), $data) } "></a>\
                         </td>\
                     </tr>\
                 </tbody>\
@@ -493,7 +541,7 @@
         var instance = new Model(opts);
         var cal;
 
-        if( el.tagName == "INPUT" ) {
+        if( el.tagName == 'INPUT' ) {
 
             // Create our template
             var temp = doc.createElement('div');
@@ -513,7 +561,7 @@
                     var height = instance.utils.element.height(el);
                     var positions = [window.innerWidth - cal.offsetWidth - 20, offset.left];
 
-                    cal.style.position = "absolute";
+                    cal.style.position = 'absolute';
                     cal.style.top = (offset.top + height + 5) + 'px';
                     cal.style.left = (Math.min.apply(null, positions)) + 'px';
                     cal.style.opacity = '1';
@@ -551,22 +599,24 @@
             });
 
             // Unset observable upon certain values
-            ko.utils.registerEventHandler(el, 'blur', function(e) {
+            //ko.utils.registerEventHandler(el, 'blur', function(e) {
 
-                if(e.target.value === "") {
-                    return instance.value(null);
-                }
+            //    if(e.target.value === '') {
+            //        return instance.value(null);
+            //    }
 
-                if( instance.utils.date.isValid(e.target.value) ) {
-                    var newDate = new Date(e.target.value);
+            //    if (instance.utils.date.isValid(e.target.value)) {
+            //        var newDate = moment(e.target.value, instance.opts.format);
 
-                    if( instance.value() === null ||
-                        (instance.value() && instance.value().getTime() !== newDate.getTime())
-                    ) {
-                        instance.value(newDate);
-                    }
-                }
-            });
+            //        if (instance.value() === null || instance.value() === undefined || 
+            //            (instance.value() && !(instance.value().isSame(newDate)))
+            //        ) {
+            //            instance.value(newDate);
+            //        }
+            //    }
+            //});
+
+            ko.applyBindingsToNode(el, { value: instance.label });
 
         } else {
             el.innerHTML = Template;
