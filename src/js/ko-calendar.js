@@ -266,7 +266,9 @@
         }
 
         self.value = self.opts.value; // The selected Date
-        self.value().locale(self.opts.locale);
+        if (!(self.value() === null || self.value() === undefined)) {
+            self.value().locale(self.opts.locale);
+        }
         
         // Hide today button if the min is greater than today or max is less than today
         if (self.opts.showToday && !self.utils.date.isWithinMinMaxDateRange(self.utils.date.normalize(_now))) {
