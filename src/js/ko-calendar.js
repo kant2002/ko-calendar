@@ -42,9 +42,9 @@
         var _mLts = _mLocalDate.longDateFormat('LTS');
 
         var _militaryTime = params && utils.isBoolean(params.militaryTime) ? params.militaryTime : _mLts.charAt(_mLts.length - 1) !== 'A';
-        var _months = _mLocalDate.months();
+        var _months = _mLocalDate.months().slice(0);
         var _days = _mLocalDate.weekdaysMin().slice(0);
-        var _firstDay = _mLocalDate.firstDayOfWeek().slice(0);
+        var _firstDay = _mLocalDate.firstDayOfWeek();
 
         var _showTime = params && utils.isBoolean(params.showTime) ? params.showTime : true;
 
