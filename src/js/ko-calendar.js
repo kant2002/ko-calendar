@@ -39,12 +39,12 @@
         moment.locale(_locale);
 
         var _mLocalDate = moment.localeData();
-        var _mLts = _mLocalDate._longDateFormat.LTS;
+        var _mLts = _mLocalDate.longDateFormat('LTS');
 
         var _militaryTime = params && utils.isBoolean(params.militaryTime) ? params.militaryTime : _mLts.charAt(_mLts.length - 1) !== 'A';
         var _months = _mLocalDate.months();
-        var _days = _mLocalDate.weekdays();
-        var _firstDay = _mLocalDate.firstDayOfWeek();
+        var _days = _mLocalDate.weekdaysMin().slice(0);
+        var _firstDay = _mLocalDate.firstDayOfWeek().slice(0);
 
         var _showTime = params && utils.isBoolean(params.showTime) ? params.showTime : true;
 
@@ -54,7 +54,7 @@
         } else if (_showTime) {
             _format = 'L LTS';
         } else {
-            _format = 'L'
+            _format = 'L';
         }
 
         self.opts = {
@@ -485,7 +485,7 @@
                         </th>\
                     </tr>\
                     <tr data-bind="foreach: dayLabels">\
-                        <th data-bind="text: $data.substring(0, $parents[1].constants.dayStringLength)"></th>\
+                        <th data-bind="text: $data"></th>\
                     </tr>\
                 </thead>\
                 <tbody data-bind="foreach: calendar.sheet">\
